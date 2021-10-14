@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<project basedir="." default="help">
+
+	<property name="rootdir" value="${project.basedir}/" override="true" />
+	<property name="bindir" value="${rootdir}vendor/bin/" override="false" />
+	<property name="srcdir" value="${rootdir}src/" override="false" />
+
+	<target name="help" description="Shows available targets">
+		<exec executable="${bindir}phing" passthru="true">
+			<arg value="-f" />
+			<arg value="${phing.file}" />
+			<arg value="-l" />
+		</exec>
+	</target>
+
+	<target name="lint" description="Performs syntax check of source code files">
+		<phplint haltonfailure="true">
+			<fileset dir="${rootdir}">
+				<include name="src/" />
+				<exclude name="src/*/Resource/" />
+				<include name="application/function/" />
+				<include name="application/script/" />
+				<include name="test/unit/" />
+			</fileset>
+		</phplint>
+	</target>
+
+	<target name="phpunit" description="Runs unit tests with PHPUnit">
+		<exec executable="${bindir}phpunit" passthru="true">
+			<arg line="-c ${rootdir}" />
+			<arg line="--verbose" />
+		</exec>
+	</target>
+
+	<target name="phpcs" description="Finds coding standard violations using PHP_CodeSniffer and print human readable output. Intended for usage on the command line before committing.">
+		<exec executable="${bindir}phpcs" passthru="true">
+			<arg line="-p" />
+			<arg line="--report=full" />
+		</exec>
+	</target>
+
+	<target name="cs" description="Finds coding standard violations.">
+		<exec executable="${bindir}php-cs-fixer" passthru="true">
+			<arg line="--config=.php_cs" />
+			<arg line="fix" />
+			<arg line="--dry-run" />
+			<arg line="-v" />
+		</exec>
+	</target>
+
+	<target name="phpcpd" description="Finds duplicate code using PHPCPD">
+		<exec executable="${bindir}phpcpd" passthru="true">
+			<arg line="--min-lines 7" />
+			<arg line="--min-tokens 65" />
+			<arg line="${srcdir}" />
+		</exec>
+	</target>
+
+	<target name="phpmd" description="Performs project mess detection using PHPMD and print human readable output. Intended for usage on the command line before committing.">
+		<exec executable="${bindir}phpmd" passthru="true">
+			<arg line="${srcdir}" />
+			<arg line="text" />
+			<arg line="${rootdir}phpmd.xml" />
+		</exec>
+	</target>
+
+	<target name="codecheck" depends="lint,phpunit,phpcs,phpcpd,phpmd" description="Runs code-related targets (lint, phpunit, etc)"/>
+
+	<target name="coverage" description="Runs code coverage with PHPUnit">
+		<exec executable="${bindir}phpunit" passthru="true">
+			<arg line="--coverage-html ${rootdir}build/coverage/" />
+			<arg line="-c ${rootdir}phpunit.xml" />
+		</exec>
+	</target>
+
+	<target name="upgrade" description="Upgrades project from GIT.">
+		<echo msg="Pulling from GIT repository..." />
+		<exec command="git pull" dir="${rootdir}" logoutput="true" passthru="true" checkreturn="true" />
+		<echo msg="Installing/updating dependencies..." />
+		<exec command="php ${rootdir}composer.phar install --no-dev -o" dir="${rootdir}" logoutput="true" passthru="true" checkreturn="true" />
+		<echo msg="Building services container..." />
+		<exec command="php ${rootdir}application/script/rebuild_container.php" logoutput="true" passthru="true" checkreturn="true" />
+		<echo msg="Generating entity proxies..." />
+		<exec command="${rootdir}vendor/bin/doctrine orm:generate:proxies" logoutput="true" passthru="true" checkreturn="true" />
+		<echo msg="Resetting cache..." />
+		<exec command="php ${rootdir}application/script/reset_cache.php" logoutput="true" passthru="true" checkreturn="true" />
+	</target>
+
+	<target name="cs-fix" description="Fixes checkstyle issues.">
+		<exec executable="${bindir}php-cs-fixer" passthru="true">
+			<arg line="--config=.php_cs" />
+			<arg line="fix" />
+			<arg line="-v" />
+		</exec>
+	</target>
+
+</project>
