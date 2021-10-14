@@ -26,12 +26,14 @@ class MoneyAmount
 
     /**
      * @throws InvalidCurrencyException
+     * @throws InvalidRoundingMethodException
      */
     public static function createFromFloat(
         float $amountFloat,
-        string $currencyCode
+        string $currencyCode,
+        string $roundingMethod = self::ROUND_DEFAULT
     ): self {
-        $amount = (int) round($amountFloat * 100);
+        $amount = self::round($amountFloat * 100, $roundingMethod);
 
         return new self($amount, $currencyCode);
     }
@@ -71,14 +73,14 @@ class MoneyAmount
         return $this->getIntegerPart() . '.' . $this->getDecimalPart();
     }
 
-    public function getIntegerPart(): string
+    public function getIntegerPart(): int
     {
-        return (string) (int) ($this->amount / 100);
+        return (int) ($this->amount / 100);
     }
 
-    public function getDecimalPart(): string
+    public function getDecimalPart(): int
     {
-        return sprintf('%02d', (string) ($this->amount % 100));
+        return (int) sprintf('%02d', (string) ($this->amount % 100));
     }
 
     public function getCurrencyCode(): string
@@ -131,7 +133,7 @@ class MoneyAmount
         float $multiplier,
         string $roundingMethod = self::ROUND_DEFAULT
     ): self {
-        $amount = $this->round($this->amount * $multiplier, $roundingMethod);
+        $amount = self::round($this->amount * $multiplier, $roundingMethod);
 
         return self::create($amount, $this->currencyCode);
     }
@@ -151,7 +153,7 @@ class MoneyAmount
             throw new DivisionByZeroException($message);
         }
 
-        $amount = $this->round($this->amount / $divider, $roundingMethod);
+        $amount = self::round($this->amount / $divider, $roundingMethod);
 
         return self::create($amount, $this->currencyCode);
     }
@@ -165,7 +167,7 @@ class MoneyAmount
         string $targetCurrency,
         string $roundingMethod = self::ROUND_DEFAULT
     ): self {
-        $amount = $this->round($this->amount * $rate, $roundingMethod);
+        $amount = self::round($this->amount * $rate, $roundingMethod);
 
         return self::create($amount, $targetCurrency);
     }
@@ -173,7 +175,7 @@ class MoneyAmount
     /**
      * @throws InvalidRoundingMethodException
      */
-    private function round(
+    private static function round(
         float $amount,
         string $roundingMethod
     ): int {
