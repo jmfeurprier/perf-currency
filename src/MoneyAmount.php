@@ -2,7 +2,6 @@
 
 namespace perf\Currency;
 
-use InvalidArgumentException;
 use perf\Currency\Exception\CurrencyMismatchException;
 use perf\Currency\Exception\DivisionByZeroException;
 use perf\Currency\Exception\InvalidCurrencyException;

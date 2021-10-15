@@ -2,6 +2,9 @@
 
 namespace perf\Currency;
 
+use perf\Currency\Exception\CurrencyMismatchException;
+use perf\Currency\Exception\DivisionByZeroException;
+use perf\Currency\Exception\InvalidCurrencyException;
 use PHPUnit\Framework\TestCase;
 
 class MoneyAmountTest extends TestCase
@@ -12,6 +15,28 @@ class MoneyAmountTest extends TestCase
 
         $this->assertSame(12345, $moneyAmount->getAmount());
         $this->assertSame('CAD', $moneyAmount->getCurrencyCode());
+    }
+
+    public static function dataProviderInvalidCurrencyCodes(): array
+    {
+        return [
+            [''],
+            ['ZZ'],
+            ['ZZZZ'],
+            ['123'],
+            ['---'],
+            ['AB2'],
+        ];
+    }
+
+    /**
+     * @dataProvider dataProviderInvalidCurrencyCodes
+     */
+    public function testCreateWithInvalidCurrencyCode()
+    {
+        $this->expectException(InvalidCurrencyException::class);
+
+        MoneyAmount::create(12345, 'ZZZZ');
     }
 
     public function testGetAmount()
@@ -73,6 +98,15 @@ class MoneyAmountTest extends TestCase
         $this->assertSame('CAD', $result->getCurrencyCode());
     }
 
+    public function testAddWithCurrencyMismatch()
+    {
+        $moneyAmount = MoneyAmount::create(12345, 'CAD');
+
+        $this->expectException(CurrencyMismatchException::class);
+
+        $moneyAmount->add(MoneyAmount::create(11111, 'USD'));
+    }
+
     public function testSubtract()
     {
         $moneyAmount = MoneyAmount::create(12345, 'CAD');
@@ -101,6 +135,15 @@ class MoneyAmountTest extends TestCase
 
         $this->assertSame(4938, $result->getAmount());
         $this->assertSame('CAD', $result->getCurrencyCode());
+    }
+
+    public function testDivideByZero()
+    {
+        $moneyAmount = MoneyAmount::create(12345, 'CAD');
+
+        $this->expectException(DivisionByZeroException::class);
+
+        $moneyAmount->divide(0);
     }
 
     public function testGetAmountAsString()
